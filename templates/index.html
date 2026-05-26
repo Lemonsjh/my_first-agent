@@ -1,0 +1,180 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>扫地机器人智能客服</title>
+    <link rel="stylesheet" href="{{ request.url_for('static', path='chat.css') }}" />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  </head>
+  <body>
+    <div class="bg-layer bg-aurora"></div>
+    <div class="bg-layer bg-grain" aria-hidden="true"></div>
+    <main class="container">
+      <header class="topbar">
+        <div class="title-wrap">
+          <p class="eyebrow">SMART CLEAN SUPPORT</p>
+          <h1>扫地机器人智能客服</h1>
+          <p class="user-badge">当前用户：{{ username }}</p>
+        </div>
+        <div class="actions">
+          <button id="clearBtn" class="danger" type="button">清空聊天记录</button>
+          <form action="/logout" method="post">
+            <button class="secondary" type="submit">退出登录</button>
+          </form>
+        </div>
+      </header>
+
+      <section id="chatBox" class="chat-box"></section>
+
+      <form id="chatForm" class="chat-form">
+        <input id="messageInput" type="text" placeholder="请输入问题，例如：拖地后有水痕怎么办？" autocomplete="off" required />
+        <button type="submit">发送</button>
+      </form>
+    </main>
+
+    <script>
+      const chatBox = document.getElementById("chatBox");
+      const chatForm = document.getElementById("chatForm");
+      const messageInput = document.getElementById("messageInput");
+      const clearBtn = document.getElementById("clearBtn");
+      marked.setOptions({ gfm: true, breaks: true });
+
+      function scrollToBottom() {
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      function renderMessage(role, content) {
+        const item = document.createElement("div");
+        item.className = `msg ${role}`;
+
+        const roleLabel = document.createElement("div");
+        roleLabel.className = "role";
+        roleLabel.textContent = role === "assistant" ? "客服" : "你";
+
+        const text = document.createElement("div");
+        text.className = "text";
+        const cleanedContent = normalizeAssistantContent(content || "");
+        if (role === "assistant") {
+          text.innerHTML = marked.parse(cleanedContent);
+        } else {
+          text.textContent = content;
+        }
+
+        item.appendChild(roleLabel);
+        item.appendChild(text);
+        chatBox.appendChild(item);
+
+        scrollToBottom();
+        return text;
+      }
+
+      function normalizeAssistantContent(raw) {
+        if (!raw) return "";
+        return raw
+          .replace(/\r\n/g, "\n")
+          // 将句中出现的 Markdown 标题标记挪到新段落，避免 "#" 直接显示
+          .replace(/([。！？.!?])\s*(#{1,6}\s+)/g, "$1\n\n$2")
+          // 修复少量缺空格的标题写法，如 "###标题" -> "### 标题"
+          .replace(/(^|\n)\s{0,3}(#{1,6})([^ #\n])/g, "$1$2 $3")
+          .replace(/[ \t]+\n/g, "\n")
+          .replace(/\n[ \t]+\n/g, "\n\n")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+      }
+
+
+      function setFormDisabled(disabled) {
+        messageInput.disabled = disabled;
+        chatForm.querySelector("button").disabled = disabled;
+        clearBtn.disabled = disabled;
+      }
+
+      async function fetchWithAuth(url, options = {}) {
+        const response = await fetch(url, options);
+        if (response.status === 401) {
+          window.location.href = "/login";
+          throw new Error("未登录或登录已过期");
+        }
+        return response;
+      }
+
+      async function loadHistory() {
+        const response = await fetchWithAuth("/api/history");
+        const data = await response.json();
+        chatBox.innerHTML = "";
+        for (const msg of data.messages || []) {
+          renderMessage(msg.role, msg.content);
+        }
+      }
+
+      chatForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const message = messageInput.value.trim();
+        if (!message) {
+          return;
+        }
+
+        renderMessage("user", message);
+        messageInput.value = "";
+        setFormDisabled(true);
+
+        const assistantTextNode = renderMessage("assistant", "");
+        let rawAssistantContent = "";
+
+        try {
+          const response = await fetchWithAuth("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message }),
+          });
+
+          if (!response.ok || !response.body) {
+            assistantTextNode.textContent = "系统繁忙，请稍后重试。";
+            return;
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            if (chunk) {
+              rawAssistantContent += chunk;
+              assistantTextNode.innerHTML = marked.parse(normalizeAssistantContent(rawAssistantContent));
+              scrollToBottom();
+            }
+          }
+
+          const tail = decoder.decode();
+          if (tail) {
+            rawAssistantContent += tail;
+            assistantTextNode.innerHTML = marked.parse(normalizeAssistantContent(rawAssistantContent));
+          }
+        } catch (error) {
+          assistantTextNode.textContent = `请求失败：${error.message || error}`;
+        } finally {
+          setFormDisabled(false);
+          messageInput.focus();
+          scrollToBottom();
+        }
+      });
+
+      clearBtn.addEventListener("click", async () => {
+        setFormDisabled(true);
+        try {
+          await fetchWithAuth("/api/clear", { method: "POST" });
+          await loadHistory();
+        } finally {
+          setFormDisabled(false);
+          messageInput.focus();
+        }
+      });
+
+      loadHistory();
+    </script>
+  </body>
+</html>
+

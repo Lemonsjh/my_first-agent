@@ -1,0 +1,17 @@
+fastapi>=0.112.0
+uvicorn>=0.30.0
+python-multipart>=0.0.9
+flask>=3.0.0
+langchain>=0.2.0
+langchain-community>=0.2.0
+langchain-chroma>=0.1.0
+langgraph>=0.2.0
+langchain-text-splitters>=0.2.0
+chromadb>=0.5.0
+dashscope>=1.20.0
+pypdf>=4.0.0
+pyyaml>=6.0.0
+sentence-transformers>=2.5.0
+rank-bm25>=0.2.2
+tavily-python>=0.3.3
+nest-asyncio>=1.6.0

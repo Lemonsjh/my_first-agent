@@ -1,0 +1,17 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+.idea/
+.trae/
+.netlify/
+
+logs/
+chroma_db/
+*/chroma_db/
+chat_history*.json
+md5.text
+
+*.log

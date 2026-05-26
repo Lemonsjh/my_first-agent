@@ -1,0 +1,39 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>登录 - 扫地机器人智能客服</title>
+    <link rel="stylesheet" href="{{ request.url_for('static', path='chat.css') }}" />
+  </head>
+  <body>
+    <div class="bg-layer bg-aurora"></div>
+    <div class="bg-layer bg-grain" aria-hidden="true"></div>
+
+    <main class="login-shell">
+      <section class="login-card">
+        <p class="eyebrow">SMART CLEAN SUPPORT</p>
+        <h1>登录智能客服</h1>
+        <p></p>
+
+        {% if error %}
+        <p class="error-msg">{{ error }}</p>
+        {% endif %}
+
+        <form class="login-form" action="/login" method="post">
+          <label>
+            用户名
+            <input type="text" name="username" required autocomplete="username" />
+          </label>
+          <label>
+            密码
+            <input type="password" name="password" required autocomplete="current-password" />
+          </label>
+          <button type="submit">登录</button>
+        </form>
+        <p class="hint">没有账号？<a href="/register">去注册</a></p>
+      </section>
+    </main>
+  </body>
+</html>
+
