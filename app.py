@@ -311,7 +311,7 @@ async def upload_knowledge(request: Request, file: UploadFile = File(...)):
 if __name__ == "__main__":
     # ========== 选择启动模式 ==========
     # 模式 1：开发模式（支持代码热重载，会启动两个进程）
-    uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)
+    #uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)
     
     # 模式 2：生产模式（只启动一个进程，启动更快）
-    # uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=False)
+    uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=False)
