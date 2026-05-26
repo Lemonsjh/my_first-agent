@@ -5,18 +5,21 @@ import hashlib
 from datetime import timedelta
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
+
 from agent.react_agent2 import ReactAgent
 from rag.vector_store import VectorStoreService
 import uvicorn
 from utils.config_handler import chroma_conf
 
-BASE_DIR = Path(__file__).resolve().parent
 USERS_FILE = BASE_DIR / "users.json"
 DATA_DIR = BASE_DIR / chroma_conf["data_path"]
 ADMIN_USERNAMES = {"admin", "sjh"}
